@@ -87,7 +87,7 @@ jobs:
             exit 1
           fi
           
-          issue_number=$(echo "${gh_output}" | grep -o '#[0-9]*' | sed 's/#//')
+          issue_number=$(echo "${gh_output}" | grep -oE 'issues/[0-9]+' | sed 's|issues/||')
           
           if [[ -z "${issue_number}" ]]; then
             echo "::error::Failed to extract issue number from GitHub CLI output"

@@ -10,3 +10,6 @@ dist/
 
 # Test coverage
 coverage/
+
+# Miscellaneous
+test-workflow-local.sh
