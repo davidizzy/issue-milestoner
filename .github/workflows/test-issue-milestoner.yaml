@@ -1,0 +1,151 @@
+name: Test Issue Milestoner
+on:
+  workflow_call:
+    inputs:
+      pr_number:
+        description: 'Pull request number for testing context'
+        required: false
+        type: string
+      pr_author:
+        description: 'Pull request author for issue assignment'
+        required: false
+        type: string
+      pr_url:
+        description: 'Pull request URL for test issue context'
+        required: false
+        type: string
+      pr_branch:
+        description: 'Pull request branch name'
+        required: false
+        type: string
+      pr_commit:
+        description: 'Pull request commit SHA'
+        required: false
+        type: string
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Pull request number for testing context'
+        required: false
+        type: string
+      pr_author:
+        description: 'Pull request author for issue assignment'
+        required: false
+        type: string
+permissions:
+  contents: read
+  issues: write
+jobs:
+  test-milestone-assignment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # ratchet:actions/checkout@v4
+      - name: Set test context
+        id: test-info
+        run: |
+          # Use inputs or defaults for manual dispatch
+          pr_number="${{ inputs.pr_number || 'manual' }}"
+          pr_author="${{ inputs.pr_author || github.actor }}"
+          pr_url="${{ inputs.pr_url || github.server_url }}/${{ github.repository }}"
+          pr_branch="${{ inputs.pr_branch || github.ref_name }}"
+          pr_commit="${{ inputs.pr_commit || github.sha }}"
+
+          {
+            echo "pr_number=${pr_number}"
+            echo "pr_author=${pr_author}"
+            echo "pr_url=${pr_url}"
+            echo "pr_branch=${pr_branch}"
+            echo "pr_commit=${pr_commit}"
+          } >> "${GITHUB_OUTPUT}"
+      - name: Create test issue
+        id: create-issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          issue_title="test of #${{ steps.test-info.outputs.pr_number }}"
+          issue_body="Automated test issue created for PR #${{ steps.test-info.outputs.pr_number }} by @${{ steps.test-info.outputs.pr_author }}.
+          
+          This issue will be used to test the milestone assignment functionality.
+          
+          **PR**: ${{ steps.test-info.outputs.pr_url }}
+          **Branch**: \`${{ steps.test-info.outputs.pr_branch }}\`
+          **Commit**: ${{ steps.test-info.outputs.pr_commit }}
+          
+          This issue will be automatically closed when the test completes."
+          
+          # Create issue and assign to PR author
+          issue_number=$(gh issue create \
+            --title "${issue_title}" \
+            --body "${issue_body}" \
+            --assignee "${{ steps.test-info.outputs.pr_author }}" \
+            --label "automated-test" \
+            --repo "${{ github.repository }}" | \
+            grep -o '#[0-9]*' | sed 's/#//')
+            
+          echo "issue_number=${issue_number}" >> "${GITHUB_OUTPUT}"
+          echo "::notice::Created test issue #${issue_number}"
+      - name: Test milestone assignment
+        id: test-assignment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ steps.create-issue.outputs.issue_number }}
+          TARGET_MILESTONE: "pr-check-milestone"
+          REPOSITORY: ${{ github.repository }}
+          GITHUB_OUTPUT: /tmp/milestone_output
+        run: |
+          echo "::group::Testing milestone assignment"
+          echo "Testing with:"
+          echo "  Issue: #${ISSUE_NUMBER}"
+          echo "  Repository: ${REPOSITORY}"
+          echo "  Target Milestone: ${TARGET_MILESTONE}"
+          
+          # Run the milestone assignment script from current branch
+          if ./assign-milestone.sh; then
+            echo "::notice::Milestone assignment successful!"
+            echo "test_passed=true" >> "${GITHUB_OUTPUT}"
+            
+            # Read outputs
+            if [[ -f "/tmp/milestone_output" ]]; then
+              echo "::group::Assignment Results"
+              while IFS='=' read -r key value; do
+                echo "${key}: ${value}"
+              done < "/tmp/milestone_output"
+              echo "::endgroup::"
+            fi
+          else
+            echo "::error::Milestone assignment failed!"
+            echo "test_passed=false" >> "${GITHUB_OUTPUT}"
+            
+            # Read error outputs if available
+            if [[ -f "/tmp/milestone_output" ]]; then
+              echo "::group::Error Details"
+              while IFS='=' read -r key value; do
+                echo "${key}: ${value}"
+              done < "/tmp/milestone_output"
+              echo "::endgroup::"
+            fi
+          fi
+          echo "::endgroup::"
+      - name: Verify milestone assignment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: "echo \"::group::Verifying milestone assignment\"\n\n# Get issue details to verify milestone was assigned\nmilestone_title=$(gh issue view \"${{ steps.create-issue.outputs.issue_number }}\" \\\n  --repo \"${{ github.repository }}\" \\\n  --json milestone \\\n  --jq '.milestone.title // empty')\n  \nif [[ \"$milestone_title\" == \"pr-check-milestone\" ]]; then\n  echo \"✅ SUCCESS: Issue #${{ steps.create-issue.outputs.issue_number }} is correctly assigned to milestone: $milestone_title\"\nelse\n  echo \"❌ FAILURE: Issue #${{ steps.create-issue.outputs.issue_number }} milestone assignment failed\"\n  echo \"Expected: pr-check-milestone\"\n  echo \"Actual: $milestone_title\"\n  exit 1\nfi\necho \"::endgroup::\"\n"
+      - name: Clean up test issue
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: "# Close the test issue as completed\ngh issue close \"${{ steps.create-issue.outputs.issue_number }}\" \\\n  --repo \"${{ github.repository }}\" \\\n  --reason completed \\\n  --comment \"✅ Test completed successfully. The milestone assignment functionality is working correctly for PR #${{ steps.test-info.outputs.pr_number }}.\"\n  \necho \"::notice::Closed test issue #${{ steps.create-issue.outputs.issue_number }}\"\n"
+      - name: Report test results
+        if: always()
+        run: |
+          if [[ "${{ steps.test-assignment.outputs.test_passed }}" == "true" ]]; then
+            echo "🎉 **Test PASSED**: Issue milestoner functionality is working correctly!"
+            echo "- Created test issue #${{ steps.create-issue.outputs.issue_number }}"
+            echo "- Successfully assigned to milestone 'pr-check-milestone'"
+            echo "- Cleaned up test issue"
+          else
+            echo "💥 **Test FAILED**: Issue milestoner functionality is not working correctly!"
+            echo "Please check the logs above for error details."
+            exit 1
+          fi

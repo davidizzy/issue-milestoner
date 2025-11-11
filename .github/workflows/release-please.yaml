@@ -1,30 +1,24 @@
 name: Release Please
-
 on:
   push:
     branches:
       - main
-
 permissions:
   contents: write
   pull-requests: write
-
 jobs:
   release-please:
     runs-on: ubuntu-latest
     steps:
-      - uses: google-github-actions/release-please-action@v4
+      - uses: googleapis/release-please-action@16a9c90856f42705d54a6fda1823352bdc62cf38 # ratchet:googleapis/release-please-action@v4.4.0
         id: release
         with:
-          release-type: node
-          package-name: issue-milestoner
-          token: ${{ secrets.GITHUB_TOKEN }}
-          
+          config-file: .release-please-config.json
+          manifest-file: .release-please-manifest.json
       # Validate the action when a release is created
       - name: Checkout
         if: ${{ steps.release.outputs.release_created }}
-        uses: actions/checkout@v4
-        
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # ratchet:actions/checkout@v4.3.0
       - name: Validate shell scripts
         if: ${{ steps.release.outputs.release_created }}
         run: |
@@ -32,7 +26,6 @@ jobs:
           bash -n assign-milestone.sh
           bash -n test-local.sh
           bash -n tests/test-composite.sh
-          
       - name: Run tests
         if: ${{ steps.release.outputs.release_created }}
         run: ./tests/test-composite.sh

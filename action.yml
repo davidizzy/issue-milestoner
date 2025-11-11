@@ -4,7 +4,6 @@ author: 'davidizzy'
 branding:
   icon: 'target'
   color: 'blue'
-
 inputs:
   github-token:
     description: 'GitHub token with repository access'
@@ -23,7 +22,6 @@ inputs:
     description: 'Repository in the format owner/repo (defaults to current repository)'
     required: false
     default: ${{ github.repository }}
-
 outputs:
   assigned:
     description: 'Whether the issue was assigned to the milestone'
@@ -34,7 +32,6 @@ outputs:
   reason:
     description: 'Reason for the action taken or not taken'
     value: ${{ steps.milestone-assignment.outputs.reason }}
-
 runs:
   using: 'composite'
   steps:

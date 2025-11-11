@@ -22,53 +22,53 @@ if ! command -v jq &> /dev/null; then
 fi
 
 # Check if GH_TOKEN is set
-if [[ -z "$GH_TOKEN" ]]; then
+if [[ -z "${GH_TOKEN}" ]]; then
     echo "❌ GH_TOKEN environment variable is not set"
     echo "💡 Set it with: export GH_TOKEN=your_github_token"
     exit 1
 fi
 
 # Get inputs from user or environment
-ISSUE_NUMBER=${1:-$ISSUE_NUMBER}
-TARGET_MILESTONE=${2:-$TARGET_MILESTONE}
-REPOSITORY=${3:-$REPOSITORY}
-ISSUE_TYPE=${4:-$ISSUE_TYPE}
+ISSUE_NUMBER=${1:-${ISSUE_NUMBER}}
+TARGET_MILESTONE=${2:-${TARGET_MILESTONE}}
+REPOSITORY=${3:-${REPOSITORY}}
+ISSUE_TYPE=${4:-${ISSUE_TYPE}}
 
-if [[ -z "$ISSUE_NUMBER" ]]; then
-    read -p "Enter issue number: " ISSUE_NUMBER
+if [[ -z "${ISSUE_NUMBER}" ]]; then
+    read -rp "Enter issue number: " ISSUE_NUMBER
 fi
 
-if [[ -z "$TARGET_MILESTONE" ]]; then
-    read -p "Enter target milestone: " TARGET_MILESTONE
+if [[ -z "${TARGET_MILESTONE}" ]]; then
+    read -rp "Enter target milestone: " TARGET_MILESTONE
 fi
 
-if [[ -z "$REPOSITORY" ]]; then
-    read -p "Enter repository (owner/repo): " REPOSITORY
+if [[ -z "${REPOSITORY}" ]]; then
+    read -rp "Enter repository (owner/repo): " REPOSITORY
 fi
 
-if [[ -z "$ISSUE_TYPE" ]]; then
-    read -p "Enter issue type filter (optional, press enter to skip): " ISSUE_TYPE
+if [[ -z "${ISSUE_TYPE}" ]]; then
+    read -rp "Enter issue type filter (optional, press enter to skip): " ISSUE_TYPE
 fi
 
 # Set up environment variables
-export GH_TOKEN="$GH_TOKEN"
-export ISSUE_NUMBER="$ISSUE_NUMBER"
-export TARGET_MILESTONE="$TARGET_MILESTONE"
-export REPOSITORY="$REPOSITORY"
-export ISSUE_TYPE="$ISSUE_TYPE"
+export GH_TOKEN="${GH_TOKEN}"
+export ISSUE_NUMBER="${ISSUE_NUMBER}"
+export TARGET_MILESTONE="${TARGET_MILESTONE}"
+export REPOSITORY="${REPOSITORY}"
+export ISSUE_TYPE="${ISSUE_TYPE}"
 export GITHUB_OUTPUT="/tmp/milestone_test_output"
 
 # Clean up any previous output
-rm -f "$GITHUB_OUTPUT"
-touch "$GITHUB_OUTPUT"
+rm -f "${GITHUB_OUTPUT}"
+touch "${GITHUB_OUTPUT}"
 
 echo ""
 echo "🚀 Running milestone assignment..."
-echo "   Issue: #$ISSUE_NUMBER"
-echo "   Repository: $REPOSITORY"
-echo "   Target Milestone: $TARGET_MILESTONE"
-if [[ -n "$ISSUE_TYPE" ]]; then
-    echo "   Issue Type Filter: $ISSUE_TYPE"
+echo "   Issue: #${ISSUE_NUMBER}"
+echo "   Repository: ${REPOSITORY}"
+echo "   Target Milestone: ${TARGET_MILESTONE}"
+if [[ -n "${ISSUE_TYPE}" ]]; then
+    echo "   Issue Type Filter: ${ISSUE_TYPE}"
 fi
 echo ""
 
@@ -79,19 +79,19 @@ if ./assign-milestone.sh; then
     echo ""
     echo "📋 Outputs:"
     while IFS='=' read -r key value; do
-        echo "   $key: $value"
-    done < "$GITHUB_OUTPUT"
+        echo "   ${key}: ${value}"
+    done < "${GITHUB_OUTPUT}"
 else
     echo ""
     echo "❌ Script failed!"
-    if [[ -f "$GITHUB_OUTPUT" ]]; then
+    if [[ -f "${GITHUB_OUTPUT}" ]]; then
         echo ""
         echo "📋 Outputs:"
         while IFS='=' read -r key value; do
-            echo "   $key: $value"
-        done < "$GITHUB_OUTPUT"
+            echo "   ${key}: ${value}"
+        done < "${GITHUB_OUTPUT}"
     fi
 fi
 
 # Clean up
-rm -f "$GITHUB_OUTPUT"
+rm -f "${GITHUB_OUTPUT}"
