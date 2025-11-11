@@ -12,7 +12,6 @@ quality-check:
 	@echo "Running quality checks..."
 	@echo "Running shellcheck..."
 	shellcheck --enable=all *.sh
-
 	@echo "Running actionlint..."
 	actionlint
 	@echo "Running ratchet lint..."
