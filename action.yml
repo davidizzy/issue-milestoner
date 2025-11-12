@@ -55,5 +55,8 @@ runs:
         ISSUE_TYPE: ${{ inputs.issue-type }}
         ISSUE_LABEL: ${{ inputs.issue-label }}
         REPOSITORY: ${{ inputs.repository }}
-        GITHUB_OUTPUT: ${{ env.GITHUB_OUTPUT }}
-      run: ${{ github.action_path }}/assign-milestone.sh
+      run: |
+        # Composite actions need GITHUB_OUTPUT set explicitly
+        export GITHUB_OUTPUT="${GITHUB_OUTPUT:-${RUNNER_TEMP:-/tmp}/github_output_$$}"
+        touch "${GITHUB_OUTPUT}"
+        ${{ github.action_path }}/assign-milestone.sh

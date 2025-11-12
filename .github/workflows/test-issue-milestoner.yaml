@@ -113,50 +113,50 @@ jobs:
           echo "::notice::Successfully created test issue #${issue_number}"
       - name: Test milestone assignment
         id: test-assignment
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ISSUE_NUMBER: ${{ steps.create-issue.outputs.issue_number }}
-          TARGET_MILESTONE: "pr-check-milestone"
-          REPOSITORY: ${{ github.repository }}
-          GITHUB_OUTPUT: /tmp/milestone_output
-        run: |
-          echo "::group::Testing milestone assignment"
-          echo "Testing with:"
-          echo "  Issue: #${ISSUE_NUMBER}"
-          echo "  Repository: ${REPOSITORY}"
-          echo "  Target Milestone: ${TARGET_MILESTONE}"
-          
-          # Run the milestone assignment script from current branch
-          if ./assign-milestone.sh; then
-            echo "::notice::Milestone assignment successful!"
-            echo "test_passed=true" >> "${GITHUB_OUTPUT}"
-            
-            # Read outputs
-            if [[ -f "/tmp/milestone_output" ]]; then
-              echo "::group::Assignment Results"
-              while IFS='=' read -r key value; do
-                echo "${key}: ${value}"
-              done < "/tmp/milestone_output"
-              echo "::endgroup::"
-            fi
-          else
-            echo "::error::Milestone assignment failed!"
-            echo "test_passed=false" >> "${GITHUB_OUTPUT}"
-            
-            # Read error outputs if available
-            if [[ -f "/tmp/milestone_output" ]]; then
-              echo "::group::Error Details"
-              while IFS='=' read -r key value; do
-                echo "${key}: ${value}"
-              done < "/tmp/milestone_output"
-              echo "::endgroup::"
-            fi
-          fi
-          echo "::endgroup::"
+        uses: ./
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ steps.create-issue.outputs.issue_number }}
+          target-milestone: "pr-check-milestone"
+          repository: ${{ github.repository }}
       - name: Verify milestone assignment
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: "echo \"::group::Verifying milestone assignment\"\n\n# Get issue details to verify milestone was assigned\nmilestone_title=$(gh issue view \"${{ steps.create-issue.outputs.issue_number }}\" \\\n  --repo \"${{ github.repository }}\" \\\n  --json milestone \\\n  --jq '.milestone.title // empty')\n  \nif [[ \"$milestone_title\" == \"pr-check-milestone\" ]]; then\n  echo \"✅ SUCCESS: Issue #${{ steps.create-issue.outputs.issue_number }} is correctly assigned to milestone: $milestone_title\"\nelse\n  echo \"❌ FAILURE: Issue #${{ steps.create-issue.outputs.issue_number }} milestone assignment failed\"\n  echo \"Expected: pr-check-milestone\"\n  echo \"Actual: $milestone_title\"\n  exit 1\nfi\necho \"::endgroup::\"\n"
+        run: |
+          echo "::group::Verifying milestone assignment"
+          
+          # Check action outputs
+          assigned="${{ steps.test-assignment.outputs.assigned }}"
+          milestone="${{ steps.test-assignment.outputs.milestone }}"
+          reason="${{ steps.test-assignment.outputs.reason }}"
+          
+          echo "Action outputs:"
+          echo "  assigned: ${assigned}"
+          echo "  milestone: ${milestone}"
+          echo "  reason: ${reason}"
+          
+          # Verify via GitHub API as well
+          milestone_title=$(gh issue view "${{ steps.create-issue.outputs.issue_number }}" \
+            --repo "${{ github.repository }}" \
+            --json milestone \
+            --jq '.milestone.title // empty')
+          
+          echo ""
+          echo "GitHub API verification:"
+          echo "  milestone: ${milestone_title}"
+          
+          if [[ "${assigned}" == "true" ]] && [[ "${milestone_title}" == "pr-check-milestone" ]]; then
+            echo ""
+            echo "✅ SUCCESS: Issue #${{ steps.create-issue.outputs.issue_number }} is correctly assigned to milestone: ${milestone_title}"
+          else
+            echo ""
+            echo "❌ FAILURE: Issue #${{ steps.create-issue.outputs.issue_number }} milestone assignment failed"
+            echo "Expected: assigned=true, milestone=pr-check-milestone"
+            echo "Actual: assigned=${assigned}, milestone=${milestone_title}"
+            echo "Reason: ${reason}"
+            exit 1
+          fi
+          echo "::endgroup::"
       - name: Clean up test issue
         if: always()
         env:
@@ -165,13 +165,16 @@ jobs:
       - name: Report test results
         if: always()
         run: |
-          if [[ "${{ steps.test-assignment.outputs.test_passed }}" == "true" ]]; then
+          assigned="${{ steps.test-assignment.outputs.assigned }}"
+          
+          if [[ "${assigned}" == "true" ]]; then
             echo "🎉 **Test PASSED**: Issue milestoner functionality is working correctly!"
             echo "- Created test issue #${{ steps.create-issue.outputs.issue_number }}"
             echo "- Successfully assigned to milestone 'pr-check-milestone'"
             echo "- Cleaned up test issue"
           else
             echo "💥 **Test FAILED**: Issue milestoner functionality is not working correctly!"
+            echo "Reason: ${{ steps.test-assignment.outputs.reason }}"
             echo "Please check the logs above for error details."
             exit 1
           fi
