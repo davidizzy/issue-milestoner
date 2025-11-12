@@ -103,10 +103,15 @@ fetch_issue_data() {
   echo "::group::Fetching issue details"
   
   local issue_data
-  issue_data=$(retry_gh_command gh issue view "${ISSUE_NUMBER}" --repo "${REPOSITORY}" --json milestone,labels,title,state)
-  local exit_code=$?
-
-  if [[ ${exit_code} -ne 0 ]]; then
+  local temp_file="/tmp/gh_issue_data_$$"
+  
+  # Run gh command with retry, capturing output to file
+  # shellcheck disable=SC2310  # Intentionally using in if condition
+  if retry_gh_command gh issue view "${ISSUE_NUMBER}" --repo "${REPOSITORY}" --json milestone,labels,title,state > "${temp_file}" 2>&1; then
+    issue_data=$(cat "${temp_file}")
+    rm -f "${temp_file}"
+  else
+    rm -f "${temp_file}"
     echo "::error::Failed to fetch issue data after ${MAX_RETRY_ATTEMPTS} attempts"
     exit 1
   fi
@@ -114,6 +119,7 @@ fetch_issue_data() {
   # Validate JSON parsing
   if [[ -z "${issue_data}" ]] || ! echo "${issue_data}" | jq -e . >/dev/null 2>&1; then
     echo "::error::Failed to parse issue data"
+    echo "::error::Received data: ${issue_data}"
     exit 1
   fi
 

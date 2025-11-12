@@ -1,0 +1,59 @@
+name: 'Issue Milestoner'
+description: 'Automatically assign issues to milestones based on criteria'
+author: 'davidizzy'
+branding:
+  icon: 'flag'
+  color: 'purple'
+keywords:
+  - milestone
+  - issues
+  - automation
+  - project-management
+  - labels
+  - types
+inputs:
+  github-token:
+    description: 'GitHub token with repository access'
+    required: true
+    default: ${{ github.token }}
+  issue-number:
+    description: 'Issue number to process'
+    required: true
+  target-milestone:
+    description: 'Target milestone to assign to the issue'
+    required: true
+  issue-type:
+    description: 'Optional issue type filter - checks GitHub issue types (e.g., bug, feature, task)'
+    required: false
+  issue-label:
+    description: 'Optional label filter - checks issue labels (e.g., enhancement, documentation)'
+    required: false
+  repository:
+    description: 'Repository in the format owner/repo (defaults to current repository)'
+    required: false
+    default: ${{ github.repository }}
+outputs:
+  assigned:
+    description: 'Whether the issue was assigned to the milestone'
+    value: ${{ steps.milestone-assignment.outputs.assigned }}
+  milestone:
+    description: 'The milestone that was assigned'
+    value: ${{ steps.milestone-assignment.outputs.milestone }}
+  reason:
+    description: 'Reason for the action taken or not taken'
+    value: ${{ steps.milestone-assignment.outputs.reason }}
+runs:
+  using: 'composite'
+  steps:
+    - name: Assign Issue to Milestone
+      id: milestone-assignment
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        ISSUE_NUMBER: ${{ inputs.issue-number }}
+        TARGET_MILESTONE: ${{ inputs.target-milestone }}
+        ISSUE_TYPE: ${{ inputs.issue-type }}
+        ISSUE_LABEL: ${{ inputs.issue-label }}
+        REPOSITORY: ${{ inputs.repository }}
+        GITHUB_OUTPUT: ${{ env.GITHUB_OUTPUT }}
+      run: ${{ github.action_path }}/assign-milestone.sh
