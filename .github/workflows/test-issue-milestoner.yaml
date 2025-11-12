@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # ratchet:actions/checkout@v4.3.0
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # ratchet:actions/checkout@v5.0.0
       - name: Set test context
         id: test-info
         run: |
@@ -50,7 +50,7 @@ jobs:
           pr_url="${{ inputs.pr_url || github.server_url }}/${{ github.repository }}"
           pr_branch="${{ inputs.pr_branch || github.ref_name }}"
           pr_commit="${{ inputs.pr_commit || github.sha }}"
-          
+
           # Handle Dependabot PRs - assign to repository owner instead of bot
           if [[ "${pr_author}" == "dependabot[bot]" ]]; then
             pr_author="${{ github.repository_owner }}"
@@ -70,24 +70,24 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           issue_title="test of #${{ steps.test-info.outputs.pr_number }}"
-          
+
           # Handle Dependabot PR messaging
           if [[ "${{ inputs.pr_author }}" == "dependabot[bot]" ]]; then
             author_info="Dependabot (assigned to @${{ steps.test-info.outputs.pr_author }})"
           else
             author_info="@${{ steps.test-info.outputs.pr_author }}"
           fi
-          
+
           issue_body="Automated test issue created for PR #${{ steps.test-info.outputs.pr_number }} by ${author_info}.
-          
+
           This issue will be used to test the milestone assignment functionality.
-          
+
           **PR**: ${{ steps.test-info.outputs.pr_url }}
           **Branch**: \`${{ steps.test-info.outputs.pr_branch }}\`
           **Commit**: ${{ steps.test-info.outputs.pr_commit }}
-          
+
           This issue will be automatically closed when the test completes."
-          
+
           # Create issue and assign to PR author
           echo "::notice::Creating test issue..."
           if ! gh_output=$(gh issue create \
@@ -100,15 +100,15 @@ jobs:
             echo "::error::GitHub CLI output: ${gh_output}"
             exit 1
           fi
-          
+
           issue_number=$(echo "${gh_output}" | grep -oE 'issues/[0-9]+' | sed 's|issues/||')
-          
+
           if [[ -z "${issue_number}" ]]; then
             echo "::error::Failed to extract issue number from GitHub CLI output"
             echo "::error::GitHub CLI output: ${gh_output}"
             exit 1
           fi
-            
+
           echo "issue_number=${issue_number}" >> "${GITHUB_OUTPUT}"
           echo "::notice::Successfully created test issue #${issue_number}"
       - name: Test milestone assignment
@@ -161,20 +161,29 @@ jobs:
         if: always()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: "# Close the test issue as completed\ngh issue close \"${{ steps.create-issue.outputs.issue_number }}\" \\\n  --repo \"${{ github.repository }}\" \\\n  --reason completed \\\n  --comment \"✅ Test completed successfully. The milestone assignment functionality is working correctly for PR #${{ steps.test-info.outputs.pr_number }}.\"\n  \necho \"::notice::Closed test issue #${{ steps.create-issue.outputs.issue_number }}\"\n"
+        run: |
+          # Close the test issue as completed
+          gh issue close "${{ steps.create-issue.outputs.issue_number }}" \
+            --repo "${{ github.repository }}" \
+            --reason completed \
+            --comment "✅ Test completed successfully. The milestone assignment functionality is working correctly for PR #${{ steps.test-info.outputs.pr_number }}."
+          
+          echo "::notice::Closed test issue #${{ steps.create-issue.outputs.issue_number }}"
       - name: Report test results
         if: always()
         run: |
           assigned="${{ steps.test-assignment.outputs.assigned }}"
-          
+
           if [[ "${assigned}" == "true" ]]; then
             echo "🎉 **Test PASSED**: Issue milestoner functionality is working correctly!"
             echo "- Created test issue #${{ steps.create-issue.outputs.issue_number }}"
             echo "- Successfully assigned to milestone 'pr-check-milestone'"
             echo "- Cleaned up test issue"
+
           else
             echo "💥 **Test FAILED**: Issue milestoner functionality is not working correctly!"
             echo "Reason: ${{ steps.test-assignment.outputs.reason }}"
+
             echo "Please check the logs above for error details."
             exit 1
           fi

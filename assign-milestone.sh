@@ -106,8 +106,9 @@ fetch_issue_data() {
   local temp_file="/tmp/gh_issue_data_$$"
   
   # Run gh command with retry, capturing output to file
+  # Note: 'type' field may not exist for all issues, but we include it in case it's available
   # shellcheck disable=SC2310  # Intentionally using in if condition
-  if retry_gh_command gh issue view "${ISSUE_NUMBER}" --repo "${REPOSITORY}" --json milestone,labels,title,state > "${temp_file}" 2>&1; then
+  if retry_gh_command gh issue view "${ISSUE_NUMBER}" --repo "${REPOSITORY}" --json milestone,labels,title,state,type > "${temp_file}" 2>&1; then
     issue_data=$(cat "${temp_file}")
     rm -f "${temp_file}"
   else

@@ -1,26 +1,22 @@
 name: Quality Checks & Unit Tests
-
 on:
   workflow_call:
   workflow_dispatch:
-
 permissions:
   contents: read
-
 jobs:
   quality-checks:
     name: Quality Checks & Unit Tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # ratchet:actions/checkout@v4.3.0
-      
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # ratchet:actions/checkout@v5.0.0
       - name: Install dependencies
         run: |
           # Install shellcheck
           sudo apt-get update
           sudo apt-get install -y shellcheck
-          
+
           # Install GitHub CLI if not available
           if ! command -v gh &> /dev/null; then
             curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
@@ -28,48 +24,43 @@ jobs:
             sudo apt-get update
             sudo apt-get install -y gh
           fi
-          
+
           # Install actionlint
           bash <(curl -s https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
           sudo mv actionlint /usr/local/bin/
-          
+
           # Install ratchet
           go install github.com/sethvargo/ratchet@latest
-      
       - name: Run shellcheck
         run: |
           echo "::group::Running shellcheck"
           shellcheck --enable=all ./*.sh
           echo "::endgroup::"
-      
       - name: Run actionlint
         run: |
           echo "::group::Running actionlint"
           actionlint
           echo "::endgroup::"
-      
       - name: Run ratchet lint
         run: |
           echo "::group::Running ratchet lint"
           ~/go/bin/ratchet lint .github/workflows/*.yaml
           echo "::endgroup::"
-      
       - name: Run unit tests
         run: |
           echo "::group::Running unit tests"
           ./tests/test-composite.sh
           echo "::endgroup::"
-      
       - name: Smoke test - Validate script structure
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
+        run: |-
           echo "::group::Smoke test - Script validation"
-          
+
           # Verify bash syntax
           bash -n assign-milestone.sh
           echo "✓ Bash syntax is valid"
-          
+
           # Verify required functions exist
           required_functions=(
             "validate_inputs"
@@ -80,7 +71,7 @@ jobs:
             "assign_milestone"
             "main"
           )
-          
+
           for func in "${required_functions[@]}"; do
             if grep -q "^${func}()" assign-milestone.sh; then
               echo "✓ Function '${func}' exists"
@@ -89,7 +80,7 @@ jobs:
               exit 1
             fi
           done
-          
+
           # Verify required constants exist
           required_constants=(
             "MIN_ISSUE_NUMBER"
@@ -97,7 +88,7 @@ jobs:
             "MAX_RETRY_ATTEMPTS"
             "INITIAL_RETRY_DELAY"
           )
-          
+
           for const in "${required_constants[@]}"; do
             if grep -q "readonly ${const}=" assign-milestone.sh; then
               echo "✓ Constant '${const}' exists"
@@ -106,6 +97,6 @@ jobs:
               exit 1
             fi
           done
-          
+
           echo "::endgroup::"
           echo "✓ All smoke tests passed"

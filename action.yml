@@ -55,7 +55,7 @@ runs:
         ISSUE_TYPE: ${{ inputs.issue-type }}
         ISSUE_LABEL: ${{ inputs.issue-label }}
         REPOSITORY: ${{ inputs.repository }}
-      run: |
+      run: |-
         # Composite actions need GITHUB_OUTPUT set explicitly
         export GITHUB_OUTPUT="${GITHUB_OUTPUT:-${RUNNER_TEMP:-/tmp}/github_output_$$}"
         touch "${GITHUB_OUTPUT}"

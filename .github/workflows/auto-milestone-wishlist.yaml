@@ -1,25 +1,51 @@
 name: Auto-assign Enhancement Issues to Wishlist
-
 on:
   issues:
     types: [opened, labeled]
-
+  workflow_dispatch:
+    inputs:
+      issue-number:
+        description: 'Issue number to assign to Wishlist milestone'
+        required: true
+        type: number
 permissions:
   issues: write
   contents: read
-
 jobs:
   assign-to-wishlist:
     runs-on: ubuntu-latest
-    if: contains(github.event.issue.labels.*.name, 'enhancement')
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.issue.labels.*.name, 'enhancement')
     steps:
       - name: Checkout code
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # ratchet:actions/checkout@v4
-      
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # ratchet:actions/checkout@v5.0.0
+      - name: Validate Issue Number
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ inputs.issue-number }}
+        run: |
+          echo "Validating issue #${ISSUE_NUMBER}..."
+
+          # Check if the issue exists and is actually an issue (not a PR)
+          if ! issue_data=$(gh issue view "${ISSUE_NUMBER}" --repo "${{ github.repository }}" --json number,title,state 2>&1); then
+            echo "::error::Issue #${ISSUE_NUMBER} does not exist or is not accessible"
+            exit 1
+          fi
+
+          # Verify it's a valid issue number
+          actual_number=$(echo "${issue_data}" | jq -r '.number')
+          if [ "${actual_number}" != "${ISSUE_NUMBER}" ]; then
+            echo "::error::Issue number mismatch. Expected ${ISSUE_NUMBER}, got ${actual_number}"
+            exit 1
+          fi
+
+          echo "::notice::Issue #${ISSUE_NUMBER} validated successfully"
+          echo "Issue title: $(echo "${issue_data}" | jq -r '.title')"
+          echo "Issue state: $(echo "${issue_data}" | jq -r '.state')"
       - name: Assign Enhancement Issues to Wishlist Milestone
         uses: ./
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          issue-number: ${{ github.event.issue.number }}
+          issue-number: ${{ github.event_name == 'workflow_dispatch' && inputs.issue-number || github.event.issue.number }}
           target-milestone: "Wishlist"
           issue-label: "enhancement"

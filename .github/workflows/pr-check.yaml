@@ -10,7 +10,6 @@ jobs:
   quality-checks:
     name: Quality Checks & Unit Tests
     uses: ./.github/workflows/quality-checks.yaml
-  
   test-issue-milestoner:
     name: Integration Test - Issue Milestoner
     needs: quality-checks
@@ -22,7 +21,6 @@ jobs:
       pr_branch: ${{ github.event.pull_request.head.ref }}
       pr_commit: ${{ github.event.pull_request.head.sha }}
     secrets: inherit
-  
   report-results:
     name: Report PR Check Results
     runs-on: ubuntu-latest
