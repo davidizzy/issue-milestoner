@@ -119,13 +119,13 @@ The GitHub token needs the following permissions:
 
 ### Common Issues
 
-**"Milestone not found"**
+#### "Milestone not found"
 
 - Verify milestone exists: `gh api repos/{owner}/{repo}/milestones`
 - Check spelling (matching is case-insensitive)
 - Ensure milestone is open
 
-**"Permission denied"**
+#### "Permission denied"
 
 - Verify workflow has `issues: write` permission
 - Check token has repository access
