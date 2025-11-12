@@ -105,16 +105,33 @@ fetch_issue_data() {
   local issue_data
   local temp_file="/tmp/gh_issue_data_$$"
   
-  # Run gh command with retry, capturing output to file
-  # Note: 'type' field may not exist for all issues, but we include it in case it's available
+  # Try to fetch with type field first (available for org repos with issue types configured)
   # shellcheck disable=SC2310  # Intentionally using in if condition
   if retry_gh_command gh issue view "${ISSUE_NUMBER}" --repo "${REPOSITORY}" --json milestone,labels,title,state,type > "${temp_file}" 2>&1; then
     issue_data=$(cat "${temp_file}")
     rm -f "${temp_file}"
   else
+    # If type field is not available, try without it
+    local error_msg
+    error_msg=$(cat "${temp_file}")
     rm -f "${temp_file}"
-    echo "::error::Failed to fetch issue data after ${MAX_RETRY_ATTEMPTS} attempts"
-    exit 1
+    
+    if [[ "${error_msg}" == *"Unknown JSON field: \"type\""* ]]; then
+      echo "::debug::Type field not available, fetching without it"
+      # shellcheck disable=SC2310  # Intentionally using in if condition
+      if retry_gh_command gh issue view "${ISSUE_NUMBER}" --repo "${REPOSITORY}" --json milestone,labels,title,state > "${temp_file}" 2>&1; then
+        issue_data=$(cat "${temp_file}")
+        rm -f "${temp_file}"
+      else
+        rm -f "${temp_file}"
+        echo "::error::Failed to fetch issue data after ${MAX_RETRY_ATTEMPTS} attempts"
+        exit 1
+      fi
+    else
+      echo "::error::Failed to fetch issue data after ${MAX_RETRY_ATTEMPTS} attempts"
+      echo "::error::${error_msg}"
+      exit 1
+    fi
   fi
 
   # Validate JSON parsing
@@ -155,7 +172,7 @@ check_existing_milestone() {
 apply_type_filter() {
   local issue_data="$1"
   
-  # Skip if no filter specified
+  # Skip if no filter specified - gracefully ignore lack of type field
   [[ -z "${ISSUE_TYPE}" ]] && return 0
   
   echo "::group::Checking GitHub issue type filter"
@@ -163,20 +180,22 @@ apply_type_filter() {
   local issue_type_field
   issue_type_field=$(echo "${issue_data}" | jq -r '.type // empty')
   
-  if [[ -n "${issue_type_field}" ]]; then
-    local issue_type_lower current_type_lower
-    issue_type_lower=$(to_lowercase "${ISSUE_TYPE}")
-    current_type_lower=$(to_lowercase "${issue_type_field}")
-    
-    if [[ "${current_type_lower}" != "${issue_type_lower}" ]]; then
-      local reason="Issue type filter \"${ISSUE_TYPE}\" does not match issue type: ${issue_type_field}"
-      set_output "reason" "${reason}"
-      echo "::notice::${reason}"
-      echo "::endgroup::"
-      return 1  # Signal to exit main
-    fi
-  else
-    local reason="Issue type filter \"${ISSUE_TYPE}\" specified but issue has no type set"
+  # If type filter is specified but issue has no type field, error out
+  if [[ -z "${issue_type_field}" ]]; then
+    local reason="Issue type filter \"${ISSUE_TYPE}\" specified but issue has no type field. Issue types are only available for organization repositories with issue types configured."
+    set_output "reason" "${reason}"
+    echo "::error::${reason}"
+    echo "::endgroup::"
+    return 1  # Signal to exit main
+  fi
+  
+  # Compare type filter with issue type
+  local issue_type_lower current_type_lower
+  issue_type_lower=$(to_lowercase "${ISSUE_TYPE}")
+  current_type_lower=$(to_lowercase "${issue_type_field}")
+  
+  if [[ "${current_type_lower}" != "${issue_type_lower}" ]]; then
+    local reason="Issue type filter \"${ISSUE_TYPE}\" does not match issue type: ${issue_type_field}"
     set_output "reason" "${reason}"
     echo "::notice::${reason}"
     echo "::endgroup::"
