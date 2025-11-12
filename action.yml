@@ -2,8 +2,15 @@ name: 'Issue Milestoner'
 description: 'Automatically assign issues to milestones based on criteria'
 author: 'davidizzy'
 branding:
-  icon: 'target'
-  color: 'blue'
+  icon: 'flag'
+  color: 'purple'
+keywords:
+  - milestone
+  - issues
+  - automation
+  - project-management
+  - labels
+  - types
 inputs:
   github-token:
     description: 'GitHub token with repository access'
@@ -16,7 +23,10 @@ inputs:
     description: 'Target milestone to assign to the issue'
     required: true
   issue-type:
-    description: 'Optional issue type filter (e.g., bug, feature, enhancement)'
+    description: 'Optional issue type filter - checks GitHub issue types (e.g., bug, feature, task)'
+    required: false
+  issue-label:
+    description: 'Optional label filter - checks issue labels (e.g., enhancement, documentation)'
     required: false
   repository:
     description: 'Repository in the format owner/repo (defaults to current repository)'
@@ -43,5 +53,6 @@ runs:
         ISSUE_NUMBER: ${{ inputs.issue-number }}
         TARGET_MILESTONE: ${{ inputs.target-milestone }}
         ISSUE_TYPE: ${{ inputs.issue-type }}
+        ISSUE_LABEL: ${{ inputs.issue-label }}
         REPOSITORY: ${{ inputs.repository }}
       run: ${{ github.action_path }}/assign-milestone.sh

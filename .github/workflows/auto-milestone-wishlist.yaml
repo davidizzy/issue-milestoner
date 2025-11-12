@@ -1,0 +1,22 @@
+name: Auto-assign Enhancement Issues to Wishlist
+
+on:
+  issues:
+    types: [opened, labeled]
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  assign-to-wishlist:
+    runs-on: ubuntu-latest
+    if: contains(github.event.issue.labels.*.name, 'enhancement')
+    steps:
+      - name: Assign Enhancement Issues to Wishlist Milestone
+        uses: ./
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.issue.number }}
+          target-milestone: "Wishlist"
+          issue-label: "enhancement"

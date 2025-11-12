@@ -7,8 +7,13 @@ permissions:
   issues: write
   pull-requests: read
 jobs:
+  quality-checks:
+    name: Quality Checks & Unit Tests
+    uses: ./.github/workflows/quality-checks.yaml
+  
   test-issue-milestoner:
-    name: Test Issue Milestoner
+    name: Integration Test - Issue Milestoner
+    needs: quality-checks
     uses: ./.github/workflows/test-issue-milestoner.yaml
     with:
       pr_number: ${{ github.event.pull_request.number }}
@@ -17,25 +22,28 @@ jobs:
       pr_branch: ${{ github.event.pull_request.head.ref }}
       pr_commit: ${{ github.event.pull_request.head.sha }}
     secrets: inherit
+  
   report-results:
     name: Report PR Check Results
     runs-on: ubuntu-latest
-    needs: [test-issue-milestoner]
+    needs: [quality-checks, test-issue-milestoner]
     if: always()
     steps:
       - name: Report overall results
         run: |-
+          quality_result="${{ needs.quality-checks.result }}"
           test_result="${{ needs.test-issue-milestoner.result }}"
 
           echo "## PR Check Results"
-          echo "- **Issue Milestoner Test**: $test_result"
+          echo "- **Quality Checks & Unit Tests**: $quality_result"
+          echo "- **Integration Test**: $test_result"
 
-          if [[ "$test_result" == "success" ]]; then
+          if [[ "$quality_result" == "success" ]] && [[ "$test_result" == "success" ]]; then
             echo ""
             echo "🎉 **All checks passed!** This PR is ready for review."
             exit 0
           else
             echo ""
-            echo "❌ **Test failed.** Please review the failed job above."
+            echo "❌ **Some checks failed.** Please review the failed jobs above."
             exit 1
           fi

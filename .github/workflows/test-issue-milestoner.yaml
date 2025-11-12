@@ -50,6 +50,12 @@ jobs:
           pr_url="${{ inputs.pr_url || github.server_url }}/${{ github.repository }}"
           pr_branch="${{ inputs.pr_branch || github.ref_name }}"
           pr_commit="${{ inputs.pr_commit || github.sha }}"
+          
+          # Handle Dependabot PRs - assign to repository owner instead of bot
+          if [[ "${pr_author}" == "dependabot[bot]" ]]; then
+            pr_author="${{ github.repository_owner }}"
+            echo "::notice::Dependabot PR detected, assigning to repository owner: ${pr_author}"
+          fi
 
           {
             echo "pr_number=${pr_number}"
@@ -64,7 +70,15 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           issue_title="test of #${{ steps.test-info.outputs.pr_number }}"
-          issue_body="Automated test issue created for PR #${{ steps.test-info.outputs.pr_number }} by @${{ steps.test-info.outputs.pr_author }}.
+          
+          # Handle Dependabot PR messaging
+          if [[ "${{ inputs.pr_author }}" == "dependabot[bot]" ]]; then
+            author_info="Dependabot (assigned to @${{ steps.test-info.outputs.pr_author }})"
+          else
+            author_info="@${{ steps.test-info.outputs.pr_author }}"
+          fi
+          
+          issue_body="Automated test issue created for PR #${{ steps.test-info.outputs.pr_number }} by ${author_info}.
           
           This issue will be used to test the milestone assignment functionality.
           
