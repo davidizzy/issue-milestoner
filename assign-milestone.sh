@@ -178,7 +178,8 @@ apply_type_filter() {
   echo "::group::Checking GitHub issue type filter"
 
   local issue_type_field
-  issue_type_field=$(echo "${issue_data}" | jq -r '.type // empty' 2>/dev/null || echo "")
+  # Extract the type name if type is an object, or the type itself if it's a string
+  issue_type_field=$(echo "${issue_data}" | jq -r 'if .type | type == "object" then .type.name elif .type | type == "string" then .type else empty end' 2>/dev/null || echo "")
 
   # If type filter is specified but issue has no type field, error out
   if [[ -z "${issue_type_field}" ]]; then
