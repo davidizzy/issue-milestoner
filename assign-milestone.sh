@@ -105,44 +105,27 @@ fetch_issue_data() {
   local issue_data
   local temp_file="/tmp/gh_issue_data_$$"
 
-  # Try to fetch with type field first (available for org repos with issue types configured)
+  # Fetch issue data using gh api (which supports all fields including type)
   # shellcheck disable=SC2310  # Intentionally using in if condition
-  if retry_gh_command gh issue view "${ISSUE_NUMBER}" --repo "${REPOSITORY}" --json milestone,labels,title,state,type > "${temp_file}" 2>&1; then
-    issue_data=$(cat "${temp_file}")
+  if retry_gh_command gh api "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}" > "${temp_file}" 2>&1; then
+    # Extract only the fields we need from the full API response
+    issue_data=$(cat "${temp_file}" | jq '{milestone, labels, title, state, type}')
     rm -f "${temp_file}"
   else
-    # If type field is not available, try without it
-    local error_msg
-    error_msg=$(cat "${temp_file}")
     rm -f "${temp_file}"
-
-    if [[ "${error_msg}" == *"Unknown JSON field: \"type\""* ]]; then
-      echo "::debug::Type field not available, fetching without it"
-      # shellcheck disable=SC2310  # Intentionally using in if condition
-      if retry_gh_command gh issue view "${ISSUE_NUMBER}" --repo "${REPOSITORY}" --json milestone,labels,title,state > "${temp_file}" 2>&1; then
-        issue_data=$(cat "${temp_file}")
-        rm -f "${temp_file}"
-      else
-        rm -f "${temp_file}"
-        echo "::error::Failed to fetch issue data after ${MAX_RETRY_ATTEMPTS} attempts"
-        exit 1
-      fi
-    else
-      echo "::error::Failed to fetch issue data after ${MAX_RETRY_ATTEMPTS} attempts"
-      echo "::error::${error_msg}"
-      exit 1
-    fi
+    echo "::error::Failed to fetch issue data after ${MAX_RETRY_ATTEMPTS} attempts"
+    exit 1
   fi
 
   # Validate JSON parsing
-  if [[ -z "${issue_data}" ]] || ! echo "${issue_data}" | jq -e . >/dev/null 2>&1; then
+  if [[ -z "${issue_data}" ]] || ! jq -e . <<< "${issue_data}" >/dev/null 2>&1; then
     echo "::error::Failed to parse issue data"
     echo "::error::Received data: ${issue_data}"
     exit 1
   fi
 
   local issue_state
-  issue_state=$(echo "${issue_data}" | jq -r '.state')
+  issue_state=$(jq -r '.state' <<< "${issue_data}")
 
   echo "::notice::Issue #${ISSUE_NUMBER}"
   echo "::notice::Issue state: ${issue_state}"
