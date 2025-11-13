@@ -140,9 +140,9 @@ fetch_issue_data() {
   if jq -e 'has("type")' <<< "${issue_data}" >/dev/null 2>&1; then
     local type_info
     type_info=$(jq -r '.type | if type == "object" then .name else . end' <<< "${issue_data}" 2>/dev/null || echo "unknown")
-    echo "::notice::Issue type detected: ${type_info}" >&2
+    echo "::debug::Issue type field detected in API response: ${type_info}" >&2
   else
-    echo "::notice::No type field found in issue data" >&2
+    echo "::debug::No type field found in API response" >&2
   fi
 
   echo "::endgroup::" >&2
