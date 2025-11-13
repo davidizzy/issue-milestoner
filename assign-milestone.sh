@@ -109,8 +109,14 @@ fetch_issue_data() {
   # shellcheck disable=SC2310  # Intentionally using in if condition
   if retry_gh_command gh api "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}" > "${temp_file}" 2>&1; then
     # Extract only the fields we need from the full API response
-    issue_data=$(cat "${temp_file}" | jq '{milestone, labels, title, state, type}')
+    issue_data=$(jq '{milestone, labels, title, state, type}' < "${temp_file}" 2>/dev/null)
     rm -f "${temp_file}"
+    
+    # If jq failed to extract data, the API response was likely an error
+    if [[ -z "${issue_data}" ]] || [[ "${issue_data}" == "null" ]]; then
+      echo "::error::Failed to extract issue data from API response"
+      exit 1
+    fi
   else
     rm -f "${temp_file}"
     echo "::error::Failed to fetch issue data after ${MAX_RETRY_ATTEMPTS} attempts"
