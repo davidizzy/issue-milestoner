@@ -100,7 +100,7 @@ validate_inputs() {
 
 # Fetch issue data from GitHub API
 fetch_issue_data() {
-  echo "::group::Fetching issue details"
+  echo "::group::Fetching issue details" >&2
 
   local issue_data
   local temp_file="/tmp/gh_issue_data_$$"
@@ -114,38 +114,38 @@ fetch_issue_data() {
 
     # If jq failed to extract data, the API response was likely an error
     if [[ -z "${issue_data}" ]] || [[ "${issue_data}" == "null" ]]; then
-      echo "::error::Failed to extract issue data from API response"
+      echo "::error::Failed to extract issue data from API response" >&2
       exit 1
     fi
   else
     rm -f "${temp_file}"
-    echo "::error::Failed to fetch issue data after ${MAX_RETRY_ATTEMPTS} attempts"
+    echo "::error::Failed to fetch issue data after ${MAX_RETRY_ATTEMPTS} attempts" >&2
     exit 1
   fi
 
   # Validate JSON parsing
   if [[ -z "${issue_data}" ]] || ! jq -e . <<< "${issue_data}" >/dev/null 2>&1; then
-    echo "::error::Failed to parse issue data"
-    echo "::error::Received data: ${issue_data}"
+    echo "::error::Failed to parse issue data" >&2
+    echo "::error::Received data: ${issue_data}" >&2
     exit 1
   fi
 
   local issue_state
   issue_state=$(jq -r '.state' <<< "${issue_data}")
 
-  echo "::notice::Issue #${ISSUE_NUMBER}"
-  echo "::notice::Issue state: ${issue_state}"
-  
+  echo "::notice::Issue #${ISSUE_NUMBER}" >&2
+  echo "::notice::Issue state: ${issue_state}" >&2
+
   # Debug: Check if type field exists in the fetched data
   if jq -e 'has("type")' <<< "${issue_data}" >/dev/null 2>&1; then
     local type_info
     type_info=$(jq -r '.type | if type == "object" then .name else . end' <<< "${issue_data}" 2>/dev/null || echo "unknown")
-    echo "::notice::Issue type detected: ${type_info}"
+    echo "::notice::Issue type detected: ${type_info}" >&2
   else
-    echo "::notice::No type field found in issue data"
+    echo "::notice::No type field found in issue data" >&2
   fi
-  
-  echo "::endgroup::"
+
+  echo "::endgroup::" >&2
 
   echo "${issue_data}"
 }
