@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/davidizzy/issue-milestoner/compare/v1.1.0...v1.1.1) (2025-11-13)
+
+
+### Bug Fixes
+
+* correctly handle type input ([#24](https://github.com/davidizzy/issue-milestoner/issues/24)) ([4d5888f](https://github.com/davidizzy/issue-milestoner/commit/4d5888f89f5d8890f7959865ad4d15af309b72b2))
+
 ## [1.1.0](https://github.com/davidizzy/issue-milestoner/compare/v1.0.0...v1.1.0) (2025-11-12)
 
 
