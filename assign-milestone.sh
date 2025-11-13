@@ -111,7 +111,7 @@ fetch_issue_data() {
     # Extract only the fields we need from the full API response
     issue_data=$(jq '{milestone, labels, title, state, type}' < "${temp_file}" 2>/dev/null)
     rm -f "${temp_file}"
-    
+
     # If jq failed to extract data, the API response was likely an error
     if [[ -z "${issue_data}" ]] || [[ "${issue_data}" == "null" ]]; then
       echo "::error::Failed to extract issue data from API response"
@@ -135,6 +135,16 @@ fetch_issue_data() {
 
   echo "::notice::Issue #${ISSUE_NUMBER}"
   echo "::notice::Issue state: ${issue_state}"
+  
+  # Debug: Check if type field exists in the fetched data
+  if jq -e 'has("type")' <<< "${issue_data}" >/dev/null 2>&1; then
+    local type_info
+    type_info=$(jq -r '.type | if type == "object" then .name else . end' <<< "${issue_data}" 2>/dev/null || echo "unknown")
+    echo "::notice::Issue type detected: ${type_info}"
+  else
+    echo "::notice::No type field found in issue data"
+  fi
+  
   echo "::endgroup::"
 
   echo "${issue_data}"
