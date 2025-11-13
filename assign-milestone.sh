@@ -179,9 +179,10 @@ apply_type_filter() {
 
   local issue_type_field=""
   # Check if type field exists first, then extract appropriately
-  if echo "${issue_data}" | jq -e 'has("type")' >/dev/null 2>&1; then
+  # Use jq directly with variable to avoid shell expansion issues
+  if jq -e 'has("type")' <<< "${issue_data}" >/dev/null 2>&1; then
     # Extract the type name if type is an object, or the type itself if it's a string
-    issue_type_field=$(echo "${issue_data}" | jq -r 'if (.type | type) == "object" then .type.name else .type end' 2>/dev/null || echo "")
+    issue_type_field=$(jq -r 'if (.type | type) == "object" then .type.name else .type end' <<< "${issue_data}" 2>/dev/null || echo "")
   fi
 
   # If type filter is specified but issue has no type field, error out
