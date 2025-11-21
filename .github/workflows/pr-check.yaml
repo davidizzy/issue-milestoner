@@ -10,38 +10,16 @@ jobs:
   quality-checks:
     name: Quality Checks & Unit Tests
     uses: ./.github/workflows/quality-checks.yaml
-  test-issue-milestoner:
-    name: Integration Test - Issue Milestoner
-    needs: quality-checks
-    uses: ./.github/workflows/test-issue-milestoner.yaml
-    with:
-      pr_number: ${{ github.event.pull_request.number }}
-      pr_author: ${{ github.event.pull_request.user.login }}
-      pr_url: ${{ github.event.pull_request.html_url }}
-      pr_branch: ${{ github.event.pull_request.head.ref }}
-      pr_commit: ${{ github.event.pull_request.head.sha }}
-    secrets: inherit
-  report-results:
-    name: Report PR Check Results
-    runs-on: ubuntu-latest
-    needs: [quality-checks, test-issue-milestoner]
-    if: always()
-    steps:
-      - name: Report overall results
-        run: |-
-          quality_result="${{ needs.quality-checks.result }}"
-          test_result="${{ needs.test-issue-milestoner.result }}"
-
-          echo "## PR Check Results"
-          echo "- **Quality Checks & Unit Tests**: $quality_result"
-          echo "- **Integration Test**: $test_result"
-
-          if [[ "$quality_result" == "success" ]] && [[ "$test_result" == "success" ]]; then
-            echo ""
-            echo "🎉 **All checks passed!** This PR is ready for review."
-            exit 0
-          else
-            echo ""
-            echo "❌ **Some checks failed.** Please review the failed jobs above."
-            exit 1
-          fi
+  ## Disabling the integration test on PRs to reduce noise in repo and runner costs.
+  ## The test is still manually runnable via workflow_dispatch on the `test-issue-milestoner.yaml` workflow.
+  # test-issue-milestoner:
+  #   name: Integration Test - Issue Milestoner
+  #   needs: quality-checks
+  #   uses: ./.github/workflows/test-issue-milestoner.yaml
+  #   with:
+  #     pr_number: ${{ github.event.pull_request.number }}
+  #     pr_author: ${{ github.event.pull_request.user.login }}
+  #     pr_url: ${{ github.event.pull_request.html_url }}
+  #     pr_branch: ${{ github.event.pull_request.head.ref }}
+  #     pr_commit: ${{ github.event.pull_request.head.sha }}
+  #   secrets: inherit

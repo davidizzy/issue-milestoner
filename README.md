@@ -6,7 +6,7 @@ A GitHub Action that automatically assigns issues to milestones based on specifi
 
 - ✅ Assigns issues to target milestones
 - ✅ Prevents reassignment if issue already has a milestone
-- ✅ Optional issue type filtering using GitHub issue types
+- ✅ Optional issue type filtering using GitHub issue types ([only available for org-based repos](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/managing-issue-types-in-an-organization))
 - ✅ Optional label filtering using issue labels
 - ✅ Comprehensive logging and error handling
 - ✅ Configurable for any repository
