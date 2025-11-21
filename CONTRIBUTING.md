@@ -44,15 +44,6 @@ Thank you for considering contributing to Issue Milestoner! This document provid
 
 ## Making Changes
 
-### Branch Naming
-
-Create a descriptive branch name:
-
-- `feature/add-new-filter-option`
-- `fix/milestone-assignment-bug`
-- `docs/update-readme-examples`
-- `test/add-integration-tests`
-
 ### Code Style
 
 - Follow existing shell script patterns
@@ -144,6 +135,10 @@ export GH_TOKEN=your_token
    - Detailed description of what was changed and why
    - Reference any related issues
    - Screenshots or examples if applicable
+
+> [!NOTE]
+> If commits do not have conventional commit prefix, ensure the PR name does.
+> To avoid burdening contributors, squash merging of PRs into main will be supported.
 
 ## Release Process
 

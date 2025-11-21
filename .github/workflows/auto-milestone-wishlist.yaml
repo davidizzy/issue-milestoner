@@ -1,3 +1,4 @@
+# This workflow automatically assigns issues labeled as "enhancement" to the "Wishlist" milestone utilizing the issue-milestoner action.
 name: Auto-assign Enhancement Issues to Wishlist
 on:
   issues:
