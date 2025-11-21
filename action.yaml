@@ -4,13 +4,6 @@ author: 'davidizzy'
 branding:
   icon: 'flag'
   color: 'purple'
-keywords:
-  - milestone
-  - issues
-  - automation
-  - project-management
-  - labels
-  - types
 inputs:
   github-token:
     description: 'GitHub token with repository access'

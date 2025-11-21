@@ -133,7 +133,8 @@ The GitHub token needs the following permissions:
 
 ## Reference Implementation
 
-This repository includes a working example of the action in [`.github/workflows/auto-milestone-wishlist.yaml`](.github/workflows/auto-milestone-wishlist.yaml). This workflow automatically assigns issues labeled with "enhancement" to a "Wishlist" milestone, demonstrating real-world usage of the `issue-label` filtering feature.
+This repository includes a working example of the action in [`.github/workflows/auto-milestone-wishlist.yaml`](.github/workflows/auto-milestone-wishlist.yaml).
+This workflow automatically assigns issues labeled with "enhancement" to a "Wishlist" milestone, demonstrating real-world usage of the `issue-label` filtering feature.
 
 You can use this as a template for creating your own milestone automation workflows.
 
