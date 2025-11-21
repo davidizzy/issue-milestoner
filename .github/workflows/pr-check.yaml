@@ -11,7 +11,7 @@ jobs:
     name: Quality Checks & Unit Tests
     uses: ./.github/workflows/quality-checks.yaml
   ## Disabling the integration test on PRs to reduce noise in repo and runner costs.
-  ## The test is still manually runnable via workflow_dispatch on the `test_issue-milestoner.yaml` workflow.
+  ## The test is still manually runnable via workflow_dispatch on the `test-issue-milestoner.yaml` workflow.
   # test-issue-milestoner:
   #   name: Integration Test - Issue Milestoner
   #   needs: quality-checks
