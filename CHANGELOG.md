@@ -1,6 +1,18 @@
 <!-- markdownlint-disable -->
 # Changelog
 
+## [1.1.3](https://github.com/davidizzy/issue-milestoner/compare/v1.1.2...v1.1.3) (2025-11-28)
+
+
+### Documentation
+
+* Add project logo to README ([45dc5b3](https://github.com/davidizzy/issue-milestoner/commit/45dc5b314716f8bf2d46a3fd615548763800d304))
+
+
+### Miscellaneous
+
+* **actions:** bump actions/checkout from 5.0.0 to 6.0.0 ([#29](https://github.com/davidizzy/issue-milestoner/issues/29)) ([296869a](https://github.com/davidizzy/issue-milestoner/commit/296869a75dd0c74e8d43d2372250a8c87e67c69c))
+
 ## [1.1.2](https://github.com/davidizzy/issue-milestoner/compare/v1.1.1...v1.1.2) (2025-11-21)
 
 
