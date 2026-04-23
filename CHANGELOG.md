@@ -1,6 +1,13 @@
 <!-- markdownlint-disable -->
 # Changelog
 
+## [1.1.4](https://github.com/davidizzy/issue-milestoner/compare/v1.1.3...v1.1.4) (2026-04-23)
+
+
+### Miscellaneous
+
+* **actions:** bump googleapis/release-please-action ([ef82f80](https://github.com/davidizzy/issue-milestoner/commit/ef82f8080ebefaa268122c498ff88ba4962ae054))
+
 ## [1.1.3](https://github.com/davidizzy/issue-milestoner/compare/v1.1.2...v1.1.3) (2026-01-26)
 
 
