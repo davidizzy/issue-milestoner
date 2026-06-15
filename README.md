@@ -60,7 +60,7 @@ where the action is most worthwhile. Only assigns issues whose type matches:
 
 ```yaml
 - name: Assign Bug Issues to Milestone
-  uses: davidizzy/issue-milestoner@v1.1.3 # x-release-please-version
+  uses: davidizzy/issue-milestoner@v2.0.0 # x-release-please-version
   with:
     github-token: ${{ secrets.GITHUB_TOKEN }}
     issue-number: ${{ github.event.issue.number }}
@@ -74,7 +74,7 @@ Only assigns issues carrying the exact label (case-insensitive):
 
 ```yaml
 - name: Assign Enhancement Issues to Milestone
-  uses: davidizzy/issue-milestoner@v1.1.3 # x-release-please-version
+  uses: davidizzy/issue-milestoner@v2.0.0 # x-release-please-version
   with:
     github-token: ${{ secrets.GITHUB_TOKEN }}
     issue-number: ${{ github.event.issue.number }}
@@ -88,7 +88,7 @@ Assigns the milestone to any issue that doesn't already have one:
 
 ```yaml
 - name: Assign Issue to Milestone
-  uses: davidizzy/issue-milestoner@v1.1.3 # x-release-please-version
+  uses: davidizzy/issue-milestoner@v2.0.0 # x-release-please-version
   with:
     github-token: ${{ secrets.GITHUB_TOKEN }}
     issue-number: ${{ github.event.issue.number }}
@@ -113,7 +113,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Assign to Current Sprint
-        uses: davidizzy/issue-milestoner@v1.1.3 # x-release-please-version
+        uses: davidizzy/issue-milestoner@v2.0.0 # x-release-please-version
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.issue.number }}

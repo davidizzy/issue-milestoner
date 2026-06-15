@@ -1,6 +1,24 @@
 <!-- markdownlint-disable -->
 # Changelog
 
+## [2.0.0](https://github.com/davidizzy/issue-milestoner/compare/v1.1.3...v2.0.0) (2026-06-15)
+
+
+### ⚠ BREAKING CHANGES
+
+* `issue-label` now matches the exact label (case-insensitive), not a substring. Previously `issue-label: ui` matched a label like `build` and `bug` matched `debugging`, assigning milestones unexpectedly. Set `issue-label` to the exact label name; for partial matching across several labels, use one action step per label.
+
+### Bug Fixes
+
+* correct issue-label matching to exact label, not substrings ([#37](https://github.com/davidizzy/issue-milestoner/issues/37)) ([ec04a05](https://github.com/davidizzy/issue-milestoner/commit/ec04a0506e68b1f596a67daa38bd7dd7b45c5494))
+
+
+### Miscellaneous
+
+* **actions:** bump actions/checkout from 6.0.2 to 6.0.3 ([#36](https://github.com/davidizzy/issue-milestoner/issues/36)) ([72b8c54](https://github.com/davidizzy/issue-milestoner/commit/72b8c54bc55567d7f7b288c5b8cda5d726acff84))
+* **actions:** bump googleapis/release-please-action ([d57cbec](https://github.com/davidizzy/issue-milestoner/commit/d57cbec3bdc3a4f100fd42134643273150baddcd))
+* **actions:** bump googleapis/release-please-action ([ef82f80](https://github.com/davidizzy/issue-milestoner/commit/ef82f8080ebefaa268122c498ff88ba4962ae054))
+
 ## [1.1.3](https://github.com/davidizzy/issue-milestoner/compare/v1.1.2...v1.1.3) (2026-01-26)
 
 
