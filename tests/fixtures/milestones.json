@@ -1,0 +1,5 @@
+[
+  { "title": "Backlog", "state": "open" },
+  { "title": "Wishlist", "state": "open" },
+  { "title": "Sprint 1", "state": "closed" }
+]

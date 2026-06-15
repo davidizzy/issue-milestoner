@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# Minimal `gh` stub for offline end-to-end tests.
+# Responds from fixture files pointed to by env vars so the real
+# assign-milestone.sh can run without network or auth.
+#
+#   GH_MOCK_ISSUE       file with the JSON for `gh api repos/.../issues/N`
+#   GH_MOCK_MILESTONES  file with the JSON array for the milestones endpoint
+#   GH_MOCK_EDIT_RC     exit code for `gh issue edit` (default 0)
+#
+# To exercise the retry / fail-fast logic, `gh api` calls can be made to fail:
+#   GH_MOCK_API_RC      exit code for `gh api` calls (default 0 = success)
+#   GH_MOCK_API_STDERR  text emitted to stderr on `gh api` (e.g. an HTTP status)
+#   GH_MOCK_CALL_LOG    if set, one line is appended per `gh api` call (for
+#                       counting attempts: fail-fast = 1, full retry = N)
+
+set -euo pipefail
+
+args="$*"
+
+# Shared handling for `gh api` calls: record the attempt, emit canned stderr,
+# and fail with the requested exit code so retry/fail-fast paths are reachable.
+api_pre() {
+  if [[ -n "${GH_MOCK_CALL_LOG:-}" ]]; then echo "api" >> "${GH_MOCK_CALL_LOG}"; fi
+  if [[ -n "${GH_MOCK_API_STDERR:-}" ]]; then printf '%s\n' "${GH_MOCK_API_STDERR}" >&2; fi
+  if [[ "${GH_MOCK_API_RC:-0}" -ne 0 ]]; then exit "${GH_MOCK_API_RC}"; fi
+}
+
+case "${args}" in
+  *"/milestones"*)
+    api_pre
+    cat "${GH_MOCK_MILESTONES:-/dev/null}"
+    ;;
+  *"api "*"issues/"*)
+    api_pre
+    cat "${GH_MOCK_ISSUE:-/dev/null}"
+    ;;
+  "issue edit"*)
+    exit "${GH_MOCK_EDIT_RC:-0}"
+    ;;
+  *)
+    echo "gh stub: unhandled invocation: gh ${args}" >&2
+    exit 1
+    ;;
+esac

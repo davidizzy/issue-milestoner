@@ -34,7 +34,8 @@ jobs:
       - name: Run shellcheck
         run: |
           echo "::group::Running shellcheck"
-          shellcheck --enable=all ./*.sh
+          # Top-level scripts plus the test harness and its gh mock (no .sh extension).
+          shellcheck --enable=all ./*.sh tests/*.sh tests/bin/*
           echo "::endgroup::"
       - name: Run actionlint
         run: |

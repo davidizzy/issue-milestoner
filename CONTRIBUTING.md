@@ -86,6 +86,9 @@ Add support for multiple milestone targets
 ./tests/test-composite.sh
 ```
 
+This suite runs the real `assign-milestone.sh` end-to-end against a mocked `gh` CLI
+(`tests/bin/gh`) with fixture API responses, so it needs no network access or token.
+
 ### Local Testing with Real Data
 
 ```bash
@@ -164,7 +167,9 @@ This project uses [Release Please](https://github.com/googleapis/release-please)
 
 - **`action.yml`** - Action definition and inputs/outputs
 - **`assign-milestone.sh`** - Main logic for milestone assignment
-- **`tests/test-composite.sh`** - Unit tests
+- **`tests/test-composite.sh`** - End-to-end tests; run the real script offline against a mocked `gh`
+- **`tests/bin/gh`** - Mocked `gh` CLI (shadowed onto `PATH`) so tests need no network or token
+- **`tests/fixtures/`** - Sample GitHub API responses (issues, milestones) used by the tests
 - **`test-local.sh`** - Local testing with real GitHub API
 
 ## Development Guidelines

@@ -1,235 +1,240 @@
-#!/bin/bash
+#!/usr/bin/env bash
+#
+# End-to-end test suite for Issue Milestoner.
+#
+# Unlike a unit suite that re-implements the logic, this runs the REAL
+# assign-milestone.sh as a subprocess with a mocked `gh` on PATH (see
+# tests/bin/gh) and fixture API responses (see tests/fixtures). It asserts on
+# the script's exit code, its GITHUB_OUTPUT contract, and its log annotations -
+# so the behavior under test is exactly what ships.
 
-# Automated Unit Test Suite for Issue Milestoner
-# Validates input handling and core logic without external dependencies
+set -uo pipefail
 
-set -e
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+FIXTURES="${SCRIPT_DIR}/fixtures"
+MOCK_BIN="${SCRIPT_DIR}/bin"
+ACTION="${REPO_ROOT}/assign-milestone.sh"
 
-echo "🧪 Automated Unit Test Suite"
-echo "============================"
-echo "🎯 Testing input validation and core logic"
-echo "🤖 Running $(basename "$0") in CI/automated mode"
-echo ""
-
-# Test framework setup
 TESTS_PASSED=0
 TESTS_FAILED=0
-TEST_OUTPUT_DIR="/tmp/issue-milestoner-tests"
-mkdir -p "$TEST_OUTPUT_DIR"
 
-# Unit test helper functions
-pass_test() {
-    local test_name="$1"
-    echo "  ✅ PASS: $test_name"
-    TESTS_PASSED=$((TESTS_PASSED + 1))
-}
+OUTPUT_FILE=""
+ACTION_LOG=""
+CALL_LOG=""
+ACTION_RC=0
 
-fail_test() {
-    local test_name="$1" 
-    local reason="$2"
-    echo "  ❌ FAIL: $test_name - $reason"
-    TESTS_FAILED=$((TESTS_FAILED + 1))
-}
-
-# Test function definitions
-test_issue_number_validation() {
-    echo "📝 Test Suite 1: Input Validation"
-    echo "  → Testing issue number validation..."
-    
-    # Test valid issue numbers
-    local valid_numbers=("1" "123" "9999")
-    for num in "${valid_numbers[@]}"; do
-        if [[ "$num" =~ ^[0-9]+$ ]] && [[ "$num" -gt 0 ]]; then
-            pass_test "Valid issue number: $num"
-        else
-            fail_test "Valid issue number: $num" "Should be valid"
-        fi
-    done
-    
-    # Test invalid issue numbers  
-    local invalid_numbers=("0" "-1" "abc" "1.5" "" " ")
-    for num in "${invalid_numbers[@]}"; do
-        if [[ ! "$num" =~ ^[0-9]+$ ]] || [[ "$num" -lt 1 ]]; then
-            pass_test "Invalid issue number: '$num'"
-        else
-            fail_test "Invalid issue number: '$num'" "Should be invalid"
-        fi
-    done
-}
-
-test_environment_validation() {
-    echo "  → Testing environment variable validation..."
-    
-    # Test required variables
-    local required_vars=("ISSUE_NUMBER" "TARGET_MILESTONE" "REPOSITORY")
-    for var in "${required_vars[@]}"; do
-        # Simulate empty variable
-        local value=""
-        if [[ -z "$value" ]]; then
-            pass_test "Required variable '$var' validation"
-        else
-            fail_test "Required variable '$var' validation" "Should detect empty value"
-        fi
-    done
-    
-    # Test optional variables
-    local optional_vars=("ISSUE_TYPE" "ISSUE_LABEL") 
-    for var in "${optional_vars[@]}"; do
-        # Simulate empty optional variable (should be allowed)
-        local value=""
-        if [[ -z "$value" ]]; then
-            pass_test "Optional variable '$var' validation" 
-        fi
-    done
-}
-
-test_filtering_logic() {
-    echo "📝 Test Suite 2: Issue Type and Label Filtering"
-    echo "  → Testing issue type matching logic..."
-    
-    # Test issue type matching (exact match, case-insensitive)
-    test_issue_type_filter() {
-        local issue_type="$1"
-        local filter_type="$2"
-        
-        local issue_type_lower filter_type_lower
-        issue_type_lower=$(echo "$issue_type" | tr '[:upper:]' '[:lower:]')
-        filter_type_lower=$(echo "$filter_type" | tr '[:upper:]' '[:lower:]')
-        
-        [[ "$issue_type_lower" == "$filter_type_lower" ]]
-    }
-    
-    # Test issue type cases
-    local issue_type_cases=(
-        "bug|bug|true"
-        "Bug|bug|true"  
-        "FEATURE|feature|true"
-        "task|bug|false"
-    )
-    
-    for case in "${issue_type_cases[@]}"; do
-        IFS='|' read -r issue_type filter_type expected <<< "$case"
-        
-        if test_issue_type_filter "$issue_type" "$filter_type"; then
-            result="true"
-        else
-            result="false"
-        fi
-        
-        if [[ "$result" == "$expected" ]]; then
-            pass_test "Issue type match: '$filter_type' vs '$issue_type'"
-        else
-            fail_test "Issue type match: '$filter_type' vs '$issue_type'" "Expected $expected, got $result"
-        fi
-    done
-    
-    echo "  → Testing label matching logic..."
-    
-    # Simulate label filtering logic from assign-milestone.sh
-    test_label_filter() {
-        local labels="$1"
-        local issue_label="$2"
-        local issue_label_lower
-        issue_label_lower=$(echo "$issue_label" | tr '[:upper:]' '[:lower:]')
-        
-        local label_matches=false
-        while IFS= read -r label; do
-            [[ -z "$label" ]] && continue
-            # Convert label to lowercase for case-insensitive comparison
-            local label_lower
-            label_lower=$(echo "$label" | tr '[:upper:]' '[:lower:]')
-            if [[ "$label_lower" == *"$issue_label_lower"* ]] || [[ "$issue_label_lower" == *"$label_lower"* ]]; then
-                label_matches=true
-                break
-            fi
-        done <<< "$labels"
-        
-        [[ "$label_matches" == "true" ]]
-    }
-    
-    # Test cases for label matching  
-    local label_test_cases=(
-        "bug,enhancement,docs|bug|true"
-        "enhancement,feature|bug|false" 
-        "BUG,Enhancement|Bug|true"
-        "ui,ux,design|ui|true"
-        "backend,api|frontend|false"
-    )
-    
-    for case in "${label_test_cases[@]}"; do
-        IFS='|' read -r labels issue_label expected <<< "$case"
-        labels=$(echo "$labels" | tr ',' '\n')
-        
-        if test_label_filter "$labels" "$issue_label"; then
-            result="true"
-        else
-            result="false"
-        fi
-        
-        if [[ "$result" == "$expected" ]]; then
-            pass_test "Label match: '$issue_label' in labels"
-        else
-            fail_test "Label match: '$issue_label' in labels" "Expected $expected, got $result"
-        fi
-    done
-}
-
-test_output_format() {
-    echo "📝 Test Suite 3: Output Format"
-    echo "  → Testing GitHub Actions output format..."
-    
-    # Test valid output formats
-    local test_outputs=(
-        "assigned=true"
-        "reason=Milestone assigned successfully" 
-        "milestone=v1.0.0"
-        "issue_number=123"
-    )
-    
-    local output_file="$TEST_OUTPUT_DIR/test_output"
-    for output in "${test_outputs[@]}"; do
-        echo "$output" > "$output_file"
-        
-        # Validate format: key=value
-        if grep -q '^[a-zA-Z_][a-zA-Z0-9_]*=.*$' "$output_file"; then
-            pass_test "Output format: '$output'"
-        else  
-            fail_test "Output format: '$output'" "Invalid key=value format"
-        fi
-    done
-    
-    rm -f "$output_file"
-}
-
-# Execute all unit tests
-echo "🚀 Executing Unit Tests..."
-echo "========================="
-
-test_issue_number_validation
-echo ""
-test_environment_validation  
-echo ""
-test_filtering_logic
-echo ""
-test_output_format
+echo "🧪 Issue Milestoner — end-to-end suite"
+echo "======================================"
 echo ""
 
-# Test summary
-echo "📊 Test Results Summary"
-echo "======================"
-echo "✅ Passed: $TESTS_PASSED"
-echo "❌ Failed: $TESTS_FAILED" 
-echo "📈 Total:  $((TESTS_PASSED + TESTS_FAILED))"
+# --- helpers ----------------------------------------------------------------
 
-if [[ $TESTS_FAILED -eq 0 ]]; then
-    echo ""
-    echo "🎉 All unit tests passed!"
-    exit 0
-else
-    echo ""
-    echo "💥 Some unit tests failed!"
-    exit 1
-fi
+pass() { echo "  ✅ PASS: $1"; TESTS_PASSED=$((TESTS_PASSED + 1)); }
+fail() { echo "  ❌ FAIL: $1 — $2"; TESTS_FAILED=$((TESTS_FAILED + 1)); }
 
-# Cleanup
-rm -rf "$TEST_OUTPUT_DIR"
+# Run the real action with the given inputs. Inputs are passed as env vars by
+# the caller; defaults are filled here. The mocked gh serves fixtures named by
+# GH_MOCK_ISSUE / GH_MOCK_MILESTONES.
+run_action() {
+  OUTPUT_FILE="$(mktemp "${TMPDIR:-/tmp}/im_out_XXXXXX")"
+  ACTION_LOG="$(mktemp "${TMPDIR:-/tmp}/im_log_XXXXXX")"
+  CALL_LOG="$(mktemp "${TMPDIR:-/tmp}/im_calls_XXXXXX")"
+
+  PATH="${MOCK_BIN}:${PATH}" \
+  GH_TOKEN="test-token" \
+  GITHUB_OUTPUT="${OUTPUT_FILE}" \
+  INITIAL_RETRY_DELAY=0 \
+  ISSUE_NUMBER="${ISSUE_NUMBER:-7}" \
+  REPOSITORY="${REPOSITORY:-acme/widgets}" \
+  TARGET_MILESTONE="${TARGET_MILESTONE:-Wishlist}" \
+  ISSUE_TYPE="${ISSUE_TYPE:-}" \
+  ISSUE_LABEL="${ISSUE_LABEL:-}" \
+  GH_MOCK_ISSUE="${GH_MOCK_ISSUE:-}" \
+  GH_MOCK_MILESTONES="${GH_MOCK_MILESTONES:-${FIXTURES}/milestones.json}" \
+  GH_MOCK_EDIT_RC="${GH_MOCK_EDIT_RC:-0}" \
+  GH_MOCK_API_RC="${GH_MOCK_API_RC:-0}" \
+  GH_MOCK_API_STDERR="${GH_MOCK_API_STDERR:-}" \
+  GH_MOCK_CALL_LOG="${CALL_LOG}" \
+    bash "${ACTION}" >"${ACTION_LOG}" 2>&1
+  ACTION_RC=$?
+}
+
+# Last value wins, matching GitHub Actions output semantics.
+get_output() { grep "^$1=" "${OUTPUT_FILE}" | tail -n1 | cut -d= -f2-; }
+
+assert_rc() {
+  local want="$1" name="$2"
+  if [[ "${ACTION_RC}" -eq "${want}" ]]; then pass "${name} (exit ${want})"
+  else fail "${name}" "expected exit ${want}, got ${ACTION_RC}; log: $(<"${ACTION_LOG}")"; fi
+}
+
+assert_output() {
+  local key="$1" want="$2" name="$3" got
+  got="$(get_output "${key}")"
+  if [[ "${got}" == "${want}" ]]; then pass "${name} (${key}=${want})"
+  else fail "${name}" "expected ${key}='${want}', got '${got}'"; fi
+}
+
+assert_log_contains() {
+  if grep -qF "$1" "${ACTION_LOG}"; then pass "$2"
+  else fail "$2" "log missing: $1"; fi
+}
+
+assert_log_excludes() {
+  if grep -qF "$1" "${ACTION_LOG}"; then fail "$2" "log unexpectedly contains: $1"
+  else pass "$2"; fi
+}
+
+assert_call_count() {
+  local want="$1" name="$2" got
+  got=$(wc -l < "${CALL_LOG}" | tr -d '[:space:]')
+  if [[ "${got}" -eq "${want}" ]]; then pass "${name} (${want} gh api call(s))"
+  else fail "${name}" "expected ${want} gh api call(s), got ${got}"; fi
+}
+
+cleanup_case() { rm -f "${OUTPUT_FILE}" "${ACTION_LOG}" "${CALL_LOG}"; }
+
+# --- tests ------------------------------------------------------------------
+
+test_label_exact_rejects_nearmiss() {
+  echo "📝 Label filter is exact (regression: substring matching)"
+  ISSUE_LABEL="ui" GH_MOCK_ISSUE="${FIXTURES}/issue-open-no-milestone.json" \
+    run_action  # labels are enhancement, build — neither equals "ui"
+  assert_rc 0 "near-miss label does not assign"
+  assert_output assigned false "near-miss label leaves issue unassigned"
+  cleanup_case
+}
+
+test_label_exact_matches() {
+  echo "📝 Label filter matches an exact label"
+  ISSUE_LABEL="enhancement" GH_MOCK_ISSUE="${FIXTURES}/issue-open-no-milestone.json" \
+    run_action
+  assert_rc 0 "exact label assigns"
+  assert_output assigned true "exact label assigns"
+  cleanup_case
+}
+
+test_milestone_case_insensitive() {
+  echo "📝 Target milestone resolves case-insensitively to canonical title"
+  TARGET_MILESTONE="wishlist" GH_MOCK_ISSUE="${FIXTURES}/issue-open-no-milestone.json" \
+    run_action  # no filters → assigns
+  assert_rc 0 "lowercase target assigns"
+  assert_output assigned true "lowercase target assigns"
+  assert_output milestone "Wishlist" "output reports canonical milestone casing"
+  cleanup_case
+}
+
+test_milestone_not_found() {
+  echo "📝 Unknown milestone fails clearly"
+  TARGET_MILESTONE="Ghost" GH_MOCK_ISSUE="${FIXTURES}/issue-open-no-milestone.json" \
+    run_action
+  assert_rc 1 "unknown milestone exits non-zero"
+  assert_output assigned false "unknown milestone leaves issue unassigned"
+  assert_log_contains "not found in acme/widgets" "unknown milestone is reported"
+  cleanup_case
+}
+
+test_already_assigned() {
+  echo "📝 Existing milestone is never overwritten"
+  GH_MOCK_ISSUE="${FIXTURES}/issue-has-milestone.json" run_action
+  assert_rc 0 "already-assigned exits cleanly"
+  assert_output assigned false "already-assigned does not reassign"
+  assert_output milestone "Backlog" "already-assigned reports current milestone"
+  cleanup_case
+}
+
+test_type_filter_no_field_is_notice() {
+  echo "📝 Type filter on a typeless issue is a notice, not an error"
+  ISSUE_TYPE="bug" GH_MOCK_ISSUE="${FIXTURES}/issue-open-no-milestone.json" run_action
+  assert_rc 0 "typeless + type filter exits cleanly"
+  assert_output assigned false "typeless + type filter does not assign"
+  assert_log_contains "::notice::Issue type filter" "typeless type filter logs a notice"
+  assert_log_excludes "::error::Issue type filter" "typeless type filter is not an error"
+  cleanup_case
+}
+
+test_type_filter_match() {
+  echo "📝 Type filter matches the issue's type (case-insensitive)"
+  ISSUE_TYPE="bug" GH_MOCK_ISSUE="${FIXTURES}/issue-typed-bug.json" run_action
+  assert_rc 0 "matching type assigns"
+  assert_output assigned true "matching type assigns"
+  cleanup_case
+}
+
+test_type_filter_mismatch() {
+  echo "📝 Type filter that does not match skips assignment"
+  ISSUE_TYPE="feature" GH_MOCK_ISSUE="${FIXTURES}/issue-typed-bug.json" run_action
+  assert_rc 0 "mismatched type exits cleanly"
+  assert_output assigned false "mismatched type does not assign"
+  cleanup_case
+}
+
+# --- input validation (validate_inputs) -------------------------------------
+
+test_invalid_issue_number() {
+  echo "📝 Non-numeric issue number is rejected"
+  ISSUE_NUMBER="abc" GH_MOCK_ISSUE="${FIXTURES}/issue-open-no-milestone.json" run_action
+  assert_rc 1 "non-numeric issue number fails"
+  assert_output assigned false "invalid issue number does not assign"
+  assert_log_contains "Invalid issue number" "invalid issue number is reported"
+  assert_call_count 0 "invalid issue number never calls the API"
+  cleanup_case
+}
+
+test_invalid_repository() {
+  echo "📝 Malformed repository is rejected"
+  REPOSITORY="not-a-repo" GH_MOCK_ISSUE="${FIXTURES}/issue-open-no-milestone.json" run_action
+  assert_rc 1 "malformed repository fails"
+  assert_log_contains "owner/repo" "malformed repository is reported"
+  cleanup_case
+}
+
+test_control_char_milestone() {
+  echo "📝 Control characters in the milestone name are rejected"
+  TARGET_MILESTONE=$'bad\x01name' GH_MOCK_ISSUE="${FIXTURES}/issue-open-no-milestone.json" run_action
+  assert_rc 1 "control-char milestone fails"
+  assert_log_contains "control characters" "control-char milestone is reported"
+  cleanup_case
+}
+
+# --- retry / fail-fast classification (retry_gh_command) --------------------
+
+test_404_fails_fast() {
+  echo "📝 A deterministic HTTP 404 fails fast (no retry)"
+  GH_MOCK_API_RC=1 GH_MOCK_API_STDERR="gh: Not Found (HTTP 404)" \
+    GH_MOCK_ISSUE="${FIXTURES}/issue-open-no-milestone.json" run_action
+  assert_rc 1 "404 aborts the run"
+  assert_call_count 1 "404 is not retried"
+  cleanup_case
+}
+
+test_403_rate_limit_is_retried() {
+  echo "📝 An HTTP 403 secondary rate limit is retried, not treated as fatal"
+  GH_MOCK_API_RC=1 \
+    GH_MOCK_API_STDERR="gh: HTTP 403: You have exceeded a secondary rate limit" \
+    GH_MOCK_ISSUE="${FIXTURES}/issue-open-no-milestone.json" run_action
+  assert_rc 1 "403 still ultimately fails after retries"
+  assert_call_count 3 "403 is retried up to MAX_RETRY_ATTEMPTS"
+  cleanup_case
+}
+
+# --- run --------------------------------------------------------------------
+
+test_label_exact_rejects_nearmiss; echo ""
+test_label_exact_matches; echo ""
+test_milestone_case_insensitive; echo ""
+test_milestone_not_found; echo ""
+test_already_assigned; echo ""
+test_type_filter_no_field_is_notice; echo ""
+test_type_filter_match; echo ""
+test_type_filter_mismatch; echo ""
+test_invalid_issue_number; echo ""
+test_invalid_repository; echo ""
+test_control_char_milestone; echo ""
+test_404_fails_fast; echo ""
+test_403_rate_limit_is_retried; echo ""
+
+echo "📊 Results: ${TESTS_PASSED} passed, ${TESTS_FAILED} failed"
+[[ "${TESTS_FAILED}" -eq 0 ]] && { echo "🎉 All tests passed!"; exit 0; }
+echo "💥 Some tests failed!"; exit 1

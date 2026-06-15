@@ -1,0 +1,8 @@
+{
+  "number": 7,
+  "title": "Add dark mode",
+  "state": "open",
+  "milestone": null,
+  "labels": [{ "name": "enhancement" }, { "name": "build" }],
+  "type": null
+}

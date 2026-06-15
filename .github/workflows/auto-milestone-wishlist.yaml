@@ -15,6 +15,10 @@ permissions:
 jobs:
   assign-to-wishlist:
     runs-on: ubuntu-latest
+    # The `if:` gates on the label for `issues` events purely as an efficiency guard
+    # (skip spinning up a runner for non-enhancement issues). For workflow_dispatch it
+    # lets any issue through, and the action's own `issue-label: enhancement` filter
+    # (below) is what actually enforces the label. The two are intentionally layered.
     if: github.event_name == 'workflow_dispatch' || contains(github.event.issue.labels.*.name, 'enhancement')
     steps:
       - name: Checkout code
@@ -49,4 +53,4 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event_name == 'workflow_dispatch' && inputs.issue-number || github.event.issue.number }}
           target-milestone: "Wishlist"
-          issue-label: "enhancement"
+          issue-label: "enhancement"  # authoritative label filter (esp. for workflow_dispatch)
