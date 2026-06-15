@@ -1,0 +1,8 @@
+{
+  "number": 8,
+  "title": "Already planned",
+  "state": "open",
+  "milestone": { "title": "Backlog" },
+  "labels": [],
+  "type": null
+}

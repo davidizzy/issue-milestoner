@@ -23,7 +23,7 @@ test-interactive:
 quality-check:
 	@echo "Running quality checks..."
 	@echo "Running shellcheck..."
-	shellcheck --enable=all *.sh
+	shellcheck --enable=all *.sh tests/*.sh tests/bin/*
 	@echo "Running actionlint..."
 	actionlint
 	@echo "Running ratchet lint..."
