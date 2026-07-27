@@ -1,6 +1,14 @@
 <!-- markdownlint-disable -->
 # Changelog
 
+## [2.0.1](https://github.com/davidizzy/issue-milestoner/compare/v2.0.0...v2.0.1) (2026-07-27)
+
+
+### Miscellaneous
+
+* **actions:** bump actions/checkout from 6.0.3 to 7.0.0 ([#38](https://github.com/davidizzy/issue-milestoner/issues/38)) ([4ae64b2](https://github.com/davidizzy/issue-milestoner/commit/4ae64b29e48cd74619b7523824365906394261f4))
+* **actions:** bump actions/checkout from 7.0.0 to 7.0.1 ([#40](https://github.com/davidizzy/issue-milestoner/issues/40)) ([850d5da](https://github.com/davidizzy/issue-milestoner/commit/850d5da6a363f9a8dfbca0afc44d09ed0818edac))
+
 ## [2.0.0](https://github.com/davidizzy/issue-milestoner/compare/v1.1.3...v2.0.0) (2026-06-15)
 
 
